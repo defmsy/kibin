@@ -14,4 +14,4 @@ sonarqube {
 group 'net.defmsy.kibin'
 version '0.0-SNAPSHOT'
 
-task("check").dependsOn(dependencyCheckAnalyze)
+//task("check").dependsOn(dependencyCheckAnalyze)

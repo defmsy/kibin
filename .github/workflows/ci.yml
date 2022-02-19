@@ -10,6 +10,10 @@ on:
       - main
       - develop
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
 jobs:
   build:
 
@@ -34,10 +38,25 @@ jobs:
           path: ~/.gradle/caches
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle') }}
           restore-keys: ${{ runner.os }}-gradle
-      - name: Build
+      - name: Gradle build
         uses: gradle/gradle-build-action@v2.1.3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
-          arguments: build sonarqube --info
+          arguments: check sonarqube --info
+      - name: Log into registry ${{ env.REGISTRY }}
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@28218f9b04b4f3f62068d7b6ce6ca5b26e35336c
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set Image Tag
+        id: get_version
+        run: echo "IMAGE_TAG=$(echo ${GITHUB_REF#refs/*/})" >> $GITHUB_ENV
+      - name: Docker build
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: gradle/gradle-build-action@v2.1.3
+        with:
+          arguments: "jib --image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}"
